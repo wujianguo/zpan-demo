@@ -50,16 +50,6 @@ zpan.db-wal
 .playwright-mcp/
 .playwright-cli/
 
-# claude code & tanstack
-.claude/
 .tanstack/
-
-# agent skills (managed by daemon)
-.agents/
-skills-lock.json
-
-# agent skills (managed by daemon)
-.claude/skills/
-
 # e2e throwaway database
 .e2e/
