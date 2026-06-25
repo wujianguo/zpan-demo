@@ -69,3 +69,17 @@ If `drizzle-kit generate` errors about TTY in CI, **fix the CI invocation** (pas
 ## Frontend API Wrappers
 
 **Every new function added to `src/lib/api.ts` must have a corresponding test added to `src/lib/api.test.ts` in the same PR.** Codecov rejects PRs where `src/lib/api.ts` gains uncovered lines. For each wrapper, assert: correct RPC path and method, payload shape, success path resolves, error path throws `ApiError`. Follow the pattern already established for `listShares`/`getShare`/`deleteShare`/`listNotifications`/etc.
+
+## Agent skills
+
+### Backlog
+
+Issues and PRDs live as GitHub issues in `wujianguo/zpan-demo`, managed via the `gh` CLI. See `docs/agents/backlog.md`.
+
+### Triage labels
+
+Canonical defaults, except `ready-for-agent` is spelled `Sandcastle` in this repo. See `docs/agents/triage-labels.md`.
+
+### Domain docs
+
+Single-context layout: `CONTEXT.md` at the repo root, ADRs under `docs/adr/`. See `docs/agents/domain.md`.
