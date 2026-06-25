@@ -1,84 +1,136 @@
 ---
 name: to-issues
-description: Break a plan, spec, or PRD into independently-grabbable issues on the project issue tracker using tracer-bullet vertical slices.
-disable-model-invocation: true
+description: Break a PRD into native GitHub sub-issues attached to the parent PRD. Project-local variant of /to-issues, adapted for this repo's PRD-as-parent + native sub-issues + agent:implement multi-session workflow. Argument is the parent PRD issue number.
 ---
 
-# To Issues
+# To Issues (project)
 
-Break a plan into independently-grabbable issues using vertical slices (tracer bullets).
+Break a parent PRD into a flat list of native GitHub sub-issues, in execution order. Each sub-issue is a tracer-bullet vertical slice that the PRD-mode `agent:implement` workflow will pick up one at a time.
 
-The issue tracker and triage label vocabulary should have been provided to you — run `/setup-matt-pocock-skills` if not.
+## Inputs
+
+- **Argument:** the parent PRD's issue number. If the user invoked the skill without one, ask for it (or for a URL).
+- **Conversation context** (optional): any planning that's already happened. Use it.
 
 ## Process
 
-### 1. Gather context
+### 1. Fetch the PRD
 
-Work from whatever is already in the conversation context. If the user passes an issue reference (issue number, URL, or path) as an argument, fetch it from the issue tracker and read its full body and comments.
+```
+gh issue view <PRD_NUMBER> --comments
+```
 
-### 2. Explore the codebase (optional)
+Read the body carefully. The PRD is the spec. Don't add scope; don't redesign. If the PRD is ambiguous, ask the user to clarify _before_ drafting slices — the slices should reflect the PRD as-is, not your interpretation.
 
-If you have not already explored the codebase, do so to understand the current state of the code. Issue titles and descriptions should use the project's domain glossary vocabulary, and respect ADRs in the area you're touching.
+### 2. Confirm there are no existing sub-issues
+
+```
+gh api repos/$GH_REPO/issues/<PRD_NUMBER>/sub_issues --jq 'length'
+```
+
+If non-zero, stop and ask the user whether to (a) abort, (b) add more on top of what's there, or (c) close/delete the existing ones first. Don't silently double up.
+
+### 3. Explore the codebase (optional)
+
+If you haven't already, explore the repo to understand the area you're touching. Use the project's domain glossary (`CONTEXT.md`) and respect ADRs under `docs/adr/`. Sub-issue titles and bodies should use the project's vocabulary.
 
 Look for opportunities to prefactor the code to make the implementation easier. "Make the change easy, then make the easy change."
 
-### 3. Draft vertical slices
+### 4. Draft vertical slices
 
-Break the plan into **tracer bullet** issues. Each issue is a thin vertical slice that cuts through ALL integration layers end-to-end, NOT a horizontal slice of one layer.
+Break the PRD into **tracer-bullet** sub-issues. Each slice is a thin vertical cut through every layer (schema → API → UI → tests), NOT a horizontal slice of one layer.
 
 <vertical-slice-rules>
-
-- Each slice delivers a narrow but COMPLETE path through every layer (schema, API, UI, tests)
+- Each slice delivers a narrow but COMPLETE path through every layer
 - A completed slice is demoable or verifiable on its own
-- Any prefactoring should be done first
-
+- Sub-issues are **flat** — a sub-issue must not itself need sub-issues. If a slice is too big to leaf, split it into multiple peer slices instead of nesting
+- Any prefactoring should be done first, in its own slice(s) at the start of the list
+- Sub-issues run in **list order** under the PRD. Order them so dependencies are satisfied: if slice B builds on slice A's schema, A must come first
 </vertical-slice-rules>
 
-### 4. Quiz the user
+The PRD-mode workflow implements sub-issues one at a time, each in its own agent session, committing to a shared branch. Keep that in mind:
+
+- Each slice must stand on its own in a single session — no slice should require state from a previous session beyond what's on the branch.
+- A reasonable session can build a couple of files, write tests, and run typecheck/test. Don't draft slices that are unrealistic for one session.
+
+### 5. Quiz the user
 
 Present the proposed breakdown as a numbered list. For each slice, show:
 
-- **Title**: short descriptive name
-- **Blocked by**: which other slices (if any) must complete first
-- **User stories covered**: which user stories this addresses (if the source material has them)
+- **Title** — short, imperative
+- **What it builds** — one or two sentences
+- **Depends on** — which earlier slice(s) it builds on (by position in the list), or "none"
 
-Ask the user:
+Ask:
 
-- Does the granularity feel right? (too coarse / too fine)
-- Are the dependency relationships correct?
-- Should any slices be merged or split further?
+- Is the granularity right? (too coarse / too fine)
+- Is the order right?
+- Should any slices be merged, split, or dropped?
 
-Iterate until the user approves the breakdown.
+Iterate until the user approves.
 
-### 5. Publish the issues to the issue tracker
+### 6. Publish sub-issues to GitHub
 
-For each approved slice, publish a new issue to the issue tracker. Use the issue body template below. These issues are considered ready for AFK agents, so publish them with the correct triage label unless instructed otherwise.
+Publish in order. For each slice:
 
-Publish issues in dependency order (blockers first) so you can reference real issue identifiers in the "Blocked by" field.
+1. **Create the issue:**
 
-<issue-template>
-## Parent
+   ```
+   gh issue create --title "<title>" --body "$(cat <<'EOF'
+   <body — see template>
+   EOF
+   )"
+   ```
 
-A reference to the parent issue on the issue tracker (if the source was an existing issue, otherwise omit this section).
+   This prints the new issue URL. Capture the issue number.
+
+2. **Get its node ID** (needed by the sub-issues API):
+
+   ```
+   gh api repos/$GH_REPO/issues/<sub_issue_number> --jq '.id'
+   ```
+
+   The `.id` field is the REST integer ID. Save it.
+
+3. **Attach as sub-issue of the PRD:**
+   ```
+   gh api -X POST "repos/$GH_REPO/issues/<PRD_NUMBER>/sub_issues" \
+     -f sub_issue_id=<sub_issue_id>
+   ```
+   This is the native sub-issues link — it shows up in the PRD's progress bar and is what the `agent-implement-prd.yml` workflow reads.
+
+Do **not** apply `agent:implement` to the sub-issues — they're never labeled directly. The user (or you, if asked) adds `agent:implement` to the **PRD** when ready to start work.
+
+### 7. Sub-issue body template
+
+<sub-issue-template>
+## Parent PRD
+
+#&lt;PRD_NUMBER&gt;
 
 ## What to build
 
-A concise description of this vertical slice. Describe the end-to-end behavior, not layer-by-layer implementation.
+A concise description of this slice's end-to-end behavior. One to three short paragraphs. Frame it around what the slice _delivers_, not which files change.
 
-Avoid specific file paths or code snippets — they go stale fast. Exception: if a prototype produced a snippet that encodes a decision more precisely than prose can (state machine, reducer, schema, type shape), inline it here and note briefly that it came from a prototype. Trim to the decision-rich parts — not a working demo, just the important bits.
+Avoid specific file paths or code snippets — they go stale fast.
+
+Exception: a prototype-derived snippet (state machine, reducer, schema, type shape) may be inlined when prose can't encode the decision as precisely. Trim to the decision-rich parts.
 
 ## Acceptance criteria
 
-- [ ] Criterion 1
-- [ ] Criterion 2
-- [ ] Criterion 3
+- [ ] Concrete, checkable outcome 1
+- [ ] Concrete, checkable outcome 2
+- [ ] Tests cover the new behavior
 
-## Blocked by
+## Depends on
 
-- A reference to the blocking ticket (if any)
+If this slice builds on an earlier sub-issue's work, name it (e.g. "Sub-issue #N — &lt;title&gt;"). If not, omit this section.
+</sub-issue-template>
 
-Or "None - can start immediately" if no blockers.
+The body intentionally does NOT include a `Closes` directive. Closing this sub-issue is the PRD-mode workflow's job (it closes the sub-issue at the end of its implementation run). Closing the PRD itself happens when the bundled PR merges via `Closes #<PRD>` in the PR description.
 
-</issue-template>
+## After publishing
 
-Do NOT close or modify any parent issue.
+- Output the PRD URL and the count of sub-issues attached.
+- Tell the user: "Add `agent:implement` to PRD #&lt;N&gt; when ready. The workflow will implement sub-issues in order, accumulating commits on a single `agent/prd-<N>-...` branch, and open a draft PR after the first sub-issue."
+- Remind them that the order of sub-issues in the PRD determines execution order. If they want to reorder, they can drag in the GitHub UI before labeling, or use the `PATCH /repos/{owner}/{repo}/issues/{issue_number}/sub_issues/priority` endpoint.

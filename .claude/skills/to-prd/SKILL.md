@@ -1,28 +1,40 @@
 ---
 name: to-prd
-description: Turn the current conversation into a PRD and publish it to the project issue tracker — no interview, just synthesis of what you've already discussed.
-disable-model-invocation: true
+description: Turn the current conversation context into a PRD and publish it as a GitHub issue that is ready to receive sub-issues from /to-issues. Project-local variant of /to-prd, adapted for this repo's PRD-as-parent-issue + sub-issues + agent:implement workflow.
 ---
 
-This skill takes the current conversation context and codebase understanding and produces a PRD. Do NOT interview the user — just synthesize what you already know.
+This skill writes a PRD and publishes it as a GitHub issue in `wujianguo/zpan-demo`. It does **not** apply `agent:implement` — labeling happens _after_ sub-issues have been created.
 
-The issue tracker and triage label vocabulary should have been provided to you — run `/setup-matt-pocock-skills` if not.
+Do NOT interview the user — just synthesize what you already know from the conversation. If context is thin, ask the user to talk through the problem first; don't run the skill on an empty plate.
 
 ## Process
 
-1. Explore the repo to understand the current state of the codebase, if you haven't already. Use the project's domain glossary vocabulary throughout the PRD, and respect any ADRs in the area you're touching.
+1. **Explore the repo** to understand the current state of the codebase, if you haven't already. Use the project's domain glossary (`CONTEXT.md`) and respect ADRs under `docs/adr/` for areas you're touching.
 
-2. Sketch out the seams at which you're going to test the feature. Existing seams should be preferred to new ones. Use the highest seam possible. If new seams are needed, propose them at the highest point you can. The fewer seams across the codebase, the better - the ideal number is one.
+2. **Sketch the major modules** you'd build or modify. Actively look for opportunities to extract deep modules that can be tested in isolation. A deep module encapsulates a lot of functionality behind a simple, testable interface that rarely changes.
 
-Check with the user that these seams match their expectations.
+   Check with the user that these modules match their expectations and which they want tests written for.
 
-3. Write the PRD using the template below, then publish it to the project issue tracker. Apply the `ready-for-agent` triage label - no need for additional triage.
+3. **Write the PRD** using the template below and publish it via `gh issue create`. Use a heredoc for the body. Do **not** apply `agent:implement` — that's reserved for after sub-issues exist. Add no labels unless the user asks.
+
+4. **Output the issue URL** so the user can pass it to `/to-issues` next.
+
+## PRD template
+
+The PRD will be read by:
+
+- **Humans** deciding whether the plan is sound.
+- **`/to-issues`** when breaking it into sub-issues.
+- The **PRD-mode implement workflow** at the start of each sub-issue run (the prompt pulls in the PRD body for context).
+- The **review workflow** when checking "does the PR match the spec?"
+
+So the PRD must be a _spec_, not a sketch — concrete enough that a sub-issue agent can implement against it without re-deriving decisions.
 
 <prd-template>
 
 ## Problem Statement
 
-The problem that the user is facing, from the user's perspective.
+The problem the user is facing, from the user's perspective.
 
 ## Solution
 
@@ -30,46 +42,45 @@ The solution to the problem, from the user's perspective.
 
 ## User Stories
 
-A LONG, numbered list of user stories. Each user story should be in the format of:
+A LONG, numbered list of user stories. Each in the format:
 
-1. As an <actor>, I want a <feature>, so that <benefit>
+1. As a &lt;actor&gt;, I want &lt;feature&gt;, so that &lt;benefit&gt;
 
-<user-story-example>
-1. As a mobile bank customer, I want to see balance on my accounts, so that I can make better informed decisions about my spending
-</user-story-example>
-
-This list of user stories should be extremely extensive and cover all aspects of the feature.
+This list should cover all aspects of the feature.
 
 ## Implementation Decisions
 
-A list of implementation decisions that were made. This can include:
+A list of implementation decisions, including:
 
-- The modules that will be built/modified
-- The interfaces of those modules that will be modified
+- The modules to build/modify
+- The interfaces of those modules
 - Technical clarifications from the developer
 - Architectural decisions
 - Schema changes
 - API contracts
 - Specific interactions
 
-Do NOT include specific file paths or code snippets. They may end up being outdated very quickly.
+Do **not** include specific file paths or code snippets. They go stale fast.
 
-Exception: if a prototype produced a snippet that encodes a decision more precisely than prose can (state machine, reducer, schema, type shape), inline it within the relevant decision and note briefly that it came from a prototype. Trim to the decision-rich parts — not a working demo, just the important bits.
+Exception: if a prototype produced a snippet that encodes a decision more precisely than prose can (state machine, reducer, schema, type shape), inline it within the relevant decision and note that it came from a prototype. Trim to the decision-rich parts.
 
 ## Testing Decisions
 
-A list of testing decisions that were made. Include:
-
-- A description of what makes a good test (only test external behavior, not implementation details)
+- What makes a good test in this codebase (only external behavior, not implementation details)
 - Which modules will be tested
-- Prior art for the tests (i.e. similar types of tests in the codebase)
+- Prior art (similar tests in the codebase)
 
 ## Out of Scope
 
-A description of the things that are out of scope for this PRD.
+Things explicitly excluded from this PRD. Be specific — "we are not building X" rather than "X is out of scope."
 
 ## Further Notes
 
-Any further notes about the feature.
+Anything else worth recording: open questions, known risks, deferred decisions.
 
 </prd-template>
+
+## After publishing
+
+- Tell the user: "PRD published at &lt;URL&gt;. Run `/to-issues &lt;issue-number&gt;` to break it into sub-issues, then add `agent:implement` to start work."
+- Do **not** add `agent:implement` yourself. The PRD has no sub-issues yet, so labeling it now would either silently bounce (regular single-issue workflow would try to run it as a leaf and might do unexpected work) or land in the wrong place. The user labels once sub-issues are in place.

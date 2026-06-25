@@ -2,7 +2,7 @@
 
 You have finished the architecture-review pass. **Do not explore further or make any changes** — only report the outcome.
 
-End your response with a single `<output>` block, exactly as specified in the project skill `improve-codebase-architecture-project`. It has one of two shapes.
+End your response with a single `<output>` block, exactly as specified in the project skill `improve-codebase-architecture`. It has one of two shapes.
 
 ## Proposed a PRD this run
 

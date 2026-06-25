@@ -1,25 +1,51 @@
 ---
 name: improve-codebase-architecture
-description: Scan a codebase for deepening opportunities, present them as a visual HTML report, then grill through whichever one you pick.
-disable-model-invocation: true
+description: Survey the codebase, pick ONE high-leverage deepening opportunity (filtering out anything already proposed), and publish it as a PRD-shaped GitHub issue via /to-prd. Designed to run unattended in the daily architecture-review workflow.
 ---
 
-# Improve Codebase Architecture
+This skill runs unattended in CI. It picks one architectural improvement, publishes it as a PRD, and emits a structured `<output>` block for the driver script. No grilling, no HTML, no human in the loop.
 
-Surface architectural friction and propose **deepening opportunities** — refactors that turn shallow modules into deep ones. The aim is testability and AI-navigability.
+## Methodology
 
-This command is _informed_ by the project's domain model and built on a shared design vocabulary:
+You are looking for **deepening opportunities** — refactors that turn shallow modules into deep ones. The aim is testability and AI-navigability.
 
-- Run the `/codebase-design` skill for the architecture vocabulary (**module**, **interface**, **depth**, **seam**, **adapter**, **leverage**, **locality**) and its principles (the deletion test, "the interface is the test surface", "one adapter = hypothetical seam, two = real"). Use these terms exactly in every suggestion — don't drift into "component," "service," "API," or "boundary."
-- The domain language in `CONTEXT.md` gives names to good seams; ADRs in `docs/adr/` record decisions this command should not re-litigate.
+### Glossary — use these terms exactly in the PRD
+
+- **Module** — anything with an interface and an implementation (function, class, package, slice).
+- **Interface** — everything a caller must know to use the module: types, invariants, error modes, ordering, config. Not just the type signature.
+- **Implementation** — the code inside.
+- **Depth** — leverage at the interface: a lot of behaviour behind a small interface. **Deep** = high leverage. **Shallow** = interface nearly as complex as the implementation.
+- **Seam** — where an interface lives; a place behaviour can be altered without editing in place.
+- **Adapter** — a concrete thing satisfying an interface at a seam.
+- **Leverage** — what callers get from depth.
+- **Locality** — what maintainers get from depth: change, bugs, knowledge concentrated in one place.
+
+### Key principles
+
+- **Deletion test** — imagine deleting the module. If complexity vanishes, it was a pass-through. If complexity reappears across N callers, it was earning its keep.
+- **The interface is the test surface.**
+- **One adapter = hypothetical seam. Two adapters = real seam.**
+
+Use `CONTEXT.md` vocabulary for **domain** language. Do not re-litigate decisions recorded under `docs/adr/`.
 
 ## Process
 
-### 1. Explore
+### 1. Read prior proposals
 
-Read the project's domain glossary (`CONTEXT.md`) and any ADRs in the area you're touching first.
+```bash
+gh issue list --label "source:architecture-review" --state all --limit 200 \
+  --json number,title,body,state,labels
+```
 
-Then use the Agent tool with `subagent_type=Explore` to walk the codebase. Don't follow rigid heuristics — explore organically and note where you experience friction:
+Read every result. Build a mental list of: which modules each prior PRD touches, what friction it addresses, and whether it was merged, closed-without-merge, or still open. **All of these count as "already proposed"** — the goal is novelty, not re-litigation.
+
+If a prior proposal was closed-without-merge with a comment giving a load-bearing reason, treat that reason as binding: do not re-propose anything matching that reasoning.
+
+### 2. Explore the codebase
+
+Read `CONTEXT.md` and any relevant ADRs under `docs/adr/` first.
+
+Then use the Agent tool with `subagent_type=Explore` to walk the repo. Note friction organically:
 
 - Where does understanding one concept require bouncing between many small modules?
 - Where are modules **shallow** — interface nearly as complex as the implementation?
@@ -27,40 +53,80 @@ Then use the Agent tool with `subagent_type=Explore` to walk the codebase. Don't
 - Where do tightly-coupled modules leak across their seams?
 - Which parts of the codebase are untested, or hard to test through their current interface?
 
-Apply the **deletion test** to anything you suspect is shallow: would deleting it concentrate complexity, or just move it? A "yes, concentrates" is the signal you want.
+Apply the **deletion test** to anything you suspect is shallow.
 
-### 2. Present candidates as an HTML report
+### 3. Filter against prior proposals — loose-duplicate rule
 
-Write a self-contained HTML file to the OS temp directory so nothing lands in the repo. Resolve the temp dir from `$TMPDIR`, falling back to `/tmp` (or `%TEMP%` on Windows), and write to `<tmpdir>/architecture-review-<timestamp>.html` so each run gets a fresh file. Open it for the user — `xdg-open <path>` on Linux, `open <path>` on macOS, `start <path>` on Windows — and tell them the absolute path.
+A candidate is a duplicate if **either**:
 
-The report uses **Tailwind via CDN** for layout and styling, and **Mermaid via CDN** for diagrams where a graph/flow/sequence reliably communicates the structure. Mix Mermaid with hand-crafted CSS/SVG visuals — use Mermaid when relationships are graph-shaped (call graphs, dependencies, sequences), and hand-built divs/SVG when you want something more editorial (mass diagrams, cross-sections, collapse animations). Each candidate gets a **before/after visualisation**. Be visual.
+- it touches substantially the same modules as a prior proposal, **or**
+- it addresses the same underlying friction, even with a different angle.
 
-For each candidate, render a card with:
+When in doubt, treat it as a duplicate. The goal is one _fresh_ proposal per run — duplicates spam the backlog.
 
-- **Files** — which files/modules are involved
-- **Problem** — why the current architecture is causing friction
-- **Solution** — plain English description of what would change
-- **Benefits** — explained in terms of locality and leverage, and how tests would improve
-- **Before / After diagram** — side-by-side, custom-drawn, illustrating the shallowness and the deepening
-- **Recommendation strength** — one of `Strong`, `Worth exploring`, `Speculative`, rendered as a badge
+### 4. Pick the single top candidate
 
-End the report with a **Top recommendation** section: which candidate you'd tackle first and why.
+Internally generate 3-5 candidates, rank them, pick one. Rank on:
 
-**Use CONTEXT.md vocabulary for the domain, and the `/codebase-design` vocabulary for the architecture.** If `CONTEXT.md` defines "Order," talk about "the Order intake module" — not "the FooBarHandler," and not "the Order service."
+- **Leverage** — how much downstream code benefits
+- **Locality gain** — how much complexity gets concentrated
+- **Test surface improvement** — does the deepened interface make tests cleaner?
+- **Cost-to-value** — small refactors that unlock a lot beat sprawling rewrites
 
-**ADR conflicts**: if a candidate contradicts an existing ADR, only surface it when the friction is real enough to warrant revisiting the ADR. Mark it clearly in the card (e.g. a warning callout: _"contradicts ADR-0007 — but worth reopening because…"_). Don't list every theoretical refactor an ADR forbids.
+If every reasonable candidate is a duplicate, **skip** (see step 6).
 
-See [HTML-REPORT.md](HTML-REPORT.md) for the full HTML scaffold, diagram patterns, and styling guidance.
+### 5. Format the PRD using /to-prd — but do NOT publish
 
-Do NOT propose interfaces yet. After the file is written, ask the user: "Which of these would you like to explore?"
+Follow the `/to-prd` skill to produce the PRD content: same template (Problem Statement, Solution, User Stories, Implementation Decisions, Testing Decisions, Out of Scope, Further Notes) and same writing discipline.
 
-### 3. Grilling loop
+**Critical override:** do not run `gh issue create`. The workflow publishes the issue itself so that creation and labelling are atomic. Your job is to write the title and body; the workflow handles the GitHub mutation.
 
-Once the user picks a candidate, run the `/grilling` skill to walk the design tree with them — constraints, dependencies, the shape of the deepened module, what sits behind the seam, what tests survive.
+In addition to the standard PRD-template sections, the body must include an **Architecture review** section at the top with:
 
-Side effects happen inline as decisions crystallize — run the `/domain-modeling` skill to keep the domain model current as you go:
+- **Files** — which modules are involved
+- **Problem** — the friction in current architecture, in `CONTEXT.md` + glossary vocabulary above
+- **Solution** — what changes, in plain English
+- **Benefits** — framed in terms of **locality** and **leverage**; how tests improve
+- **Before / After diagram** — a fenced `mermaid` block showing the shallow → deep transition. GitHub renders Mermaid natively in issue bodies.
+- **Recommendation strength** — `Strong`, `Worth exploring`, or `Speculative`
 
-- **Naming a deepened module after a concept not in `CONTEXT.md`?** Add the term to `CONTEXT.md`. Create the file lazily if it doesn't exist.
-- **Sharpening a fuzzy term during the conversation?** Update `CONTEXT.md` right there.
-- **User rejects the candidate with a load-bearing reason?** Offer an ADR, framed as: _"Want me to record this as an ADR so future architecture reviews don't re-suggest it?"_ Only offer when the reason would actually be needed by a future explorer to avoid re-suggesting the same thing — skip ephemeral reasons ("not worth it right now") and self-evident ones.
-- **Want to explore alternative interfaces for the deepened module?** Run the `/codebase-design` skill and use its design-it-twice parallel sub-agent pattern.
+### 6. Emit structured output
+
+The driver script parses a single `<output>` block at the end of your response.
+
+On success (a fresh proposal was found):
+
+```
+<output>
+{
+  "status": "proposed",
+  "title": "<the PRD title — short, imperative, < 80 chars>",
+  "body": "<the full PRD markdown body, including the Architecture review section and all standard PRD-template sections>",
+  "oneLineSummary": "<one sentence describing the proposal, for the workflow run summary>",
+  "candidatesConsidered": [
+    "<one-line description of candidate 1>",
+    "<one-line description of candidate 2>",
+    "<one-line description of candidate 3>"
+  ]
+}
+</output>
+```
+
+The workflow takes `title` + `body` and runs `gh issue create --label "source:architecture-review"`. Do not call `gh issue create` yourself.
+
+If every reasonable candidate was already proposed:
+
+```
+<output>
+{
+  "status": "skipped",
+  "reason": "<one or two sentences naming the candidates considered and which prior issues blocked them>"
+}
+</output>
+```
+
+## Rules
+
+- **Read-only everywhere.** No commits, no edits to `CONTEXT.md` / ADRs / source files, no `gh issue create`, no `gh issue edit`. The workflow does the publish. If you spot a stale doc, mention it inside the PRD body — don't edit it.
+- **One proposal per run.** Never publish more than one PRD in a single invocation.
+- **No grilling, no questions.** There is no user. Make the call and emit the `<output>` block.
