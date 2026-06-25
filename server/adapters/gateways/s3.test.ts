@@ -102,6 +102,7 @@ function makeStorage(overrides: Partial<Storage> = {}): Storage {
     secretKey: 'SECRET',
     filePath: '',
     customHost: '',
+    forcePathStyle: true,
     capacity: 0,
     egressCreditBillingEnabled: false,
     egressCreditUnitBytes: 104857600,

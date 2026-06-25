@@ -34,6 +34,7 @@ export interface Storage {
   secretKey: string
   filePath: string
   customHost: string | null
+  forcePathStyle: boolean
   capacity: number
   egressCreditBillingEnabled: boolean
   egressCreditUnitBytes: number
