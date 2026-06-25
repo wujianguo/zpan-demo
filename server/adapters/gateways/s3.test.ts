@@ -135,6 +135,14 @@ describe('S3Service', () => {
         forcePathStyle: true,
       })
     })
+
+    it('forwards forcePathStyle: false to the S3 client', () => {
+      const s = makeStorage({ forcePathStyle: false })
+      const client = service.createClient(s)
+      expect(client.config).toMatchObject({
+        forcePathStyle: false,
+      })
+    })
   })
 
   describe('presignUpload', () => {

@@ -20,6 +20,7 @@ const storageSchema = z
     secretKey: z.string(),
     filePath: z.string(),
     customHost: z.string().nullable(),
+    forcePathStyle: z.boolean(),
     capacity: z.number().int(),
     egressCreditBillingEnabled: z.boolean(),
     egressCreditUnitBytes: z.number().int(),
