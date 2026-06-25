@@ -4,6 +4,7 @@ import { z } from "zod";
 import * as sandcastle from "@ai-hero/sandcastle";
 import { noSandbox } from "@ai-hero/sandcastle/sandboxes/no-sandbox";
 import { runWithExtraction } from "../run-with-extraction";
+import { getAgentEnv, getModel } from "../get-claude-code-agent";
 
 const OUTPUT_DIR = process.env.OUTPUT_DIR ?? "/tmp";
 
@@ -23,11 +24,7 @@ const PromptOutput = z.discriminatedUnion("status", [
 
 const result = await runWithExtraction({
   name: `architecture-review-${new Date().toISOString().slice(0, 10)}`,
-  agent: sandcastle.claudeCode("claude-opus-4-6", {
-    env: {
-      CLAUDE_CODE_OAUTH_TOKEN: required("CLAUDE_CODE_OAUTH_TOKEN"),
-    },
-  }),
+  agent: sandcastle.claudeCode(getModel(), { env: getAgentEnv() }),
   sandbox: noSandbox(),
   logging: { type: "stdout" },
   promptFile: path.join(import.meta.dirname, "prompt.md"),

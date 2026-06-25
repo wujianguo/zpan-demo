@@ -7,6 +7,7 @@ import { parseDiffLines } from "../review/parse-diff-lines";
 import { ImplementPrOutput } from "./implement-pr-output";
 import { noSandbox } from "@ai-hero/sandcastle/sandboxes/no-sandbox";
 import { runWithExtraction } from "../run-with-extraction";
+import { getAgentEnv, getModel } from "../get-claude-code-agent";
 
 const PR_NUMBER = required("PR_NUMBER");
 const BRANCH = required("BRANCH");
@@ -159,11 +160,7 @@ const prComments = {
 
 const result = await runWithExtraction({
   name: `implement-pr-${PR_NUMBER}`,
-  agent: sandcastle.claudeCode("claude-opus-4-6", {
-    env: {
-      CLAUDE_CODE_OAUTH_TOKEN: required("CLAUDE_CODE_OAUTH_TOKEN"),
-    },
-  }),
+  agent: sandcastle.claudeCode(getModel(), { env: getAgentEnv() }),
   sandbox: noSandbox(),
   logging: { type: "stdout" },
   promptFile: path.join(import.meta.dirname, "prompt.md"),

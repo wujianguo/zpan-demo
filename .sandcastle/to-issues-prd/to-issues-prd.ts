@@ -4,6 +4,7 @@ import { z } from "zod";
 import * as sandcastle from "@ai-hero/sandcastle";
 import { noSandbox } from "@ai-hero/sandcastle/sandboxes/no-sandbox";
 import { runWithRetry } from "../run-with-retry";
+import { getAgentEnv, getModel } from "../get-claude-code-agent";
 
 const PRD_NUMBER = required("PRD_NUMBER");
 const PRD_TITLE = required("PRD_TITLE");
@@ -21,11 +22,7 @@ const PromptOutput = z.object({
 
 const result = await runWithRetry({
   name: `to-issues-prd-#${PRD_NUMBER}`,
-  agent: sandcastle.claudeCode("claude-opus-4-6", {
-    env: {
-      CLAUDE_CODE_OAUTH_TOKEN: required("CLAUDE_CODE_OAUTH_TOKEN"),
-    },
-  }),
+  agent: sandcastle.claudeCode(getModel(), { env: getAgentEnv() }),
   sandbox: noSandbox(),
   logging: { type: "stdout" },
   promptFile: path.join(import.meta.dirname, "prompt.md"),
