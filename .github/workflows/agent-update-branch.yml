@@ -45,10 +45,10 @@ jobs:
       - name: Ensure branch is checked out by name
         run: git checkout "$BRANCH" 2>/dev/null || git checkout -B "$BRANCH"
 
-      - name: Setup Node.js 22
+      - name: Setup Node.js 24
         uses: actions/setup-node@v4
         with:
-          node-version: "22"
+          node-version: "24"
 
       - name: Install dependencies
         run: npm install

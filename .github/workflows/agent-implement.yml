@@ -127,11 +127,11 @@ jobs:
           git config user.email "claude-code[bot]@users.noreply.github.com"
           git checkout -b "$BRANCH"
 
-      - name: Setup Node.js 22
+      - name: Setup Node.js 24
         if: steps.shape.outputs.proceed == 'true' && steps.preflight.outputs.refused != 'true'
         uses: actions/setup-node@v4
         with:
-          node-version: "22"
+          node-version: "24"
 
       - name: Install dependencies
         if: steps.shape.outputs.proceed == 'true' && steps.preflight.outputs.refused != 'true'

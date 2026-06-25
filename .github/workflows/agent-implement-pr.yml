@@ -83,11 +83,11 @@ jobs:
           git fetch origin main:main || git fetch origin main
           git checkout "$BRANCH" 2>/dev/null || git checkout -B "$BRANCH"
 
-      - name: Setup Node.js 22
+      - name: Setup Node.js 24
         if: steps.state.outputs.proceed == 'true' && steps.inputs.outputs.proceed == 'true'
         uses: actions/setup-node@v4
         with:
-          node-version: "22"
+          node-version: "24"
 
       - name: Install dependencies
         if: steps.state.outputs.proceed == 'true' && steps.inputs.outputs.proceed == 'true'
