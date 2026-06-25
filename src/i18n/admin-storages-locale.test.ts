@@ -36,6 +36,8 @@ const ADMIN_STORAGES_KEYS = [
   'admin.storages.fieldCapacity',
   'admin.storages.capacityUnlimited',
   'admin.storages.capacityHint',
+  'admin.storages.fieldForcePathStyle',
+  'admin.storages.forcePathStyleHint',
 ]
 
 const ADMIN_NAV_KEYS = ['admin.nav.management', 'admin.nav.storages', 'admin.nav.users']
@@ -174,6 +176,16 @@ describe('admin.storages locale keys — English values contract', () => {
 
   it('admin.storages.capacityHint is "Maximum storage space. 0 means unlimited."', () => {
     expect(enLocale['admin.storages.capacityHint']).toBe('Maximum storage space. 0 means unlimited.')
+  })
+
+  it('admin.storages.fieldForcePathStyle is "Path-style addressing"', () => {
+    expect(enLocale['admin.storages.fieldForcePathStyle']).toBe('Path-style addressing')
+  })
+
+  it('admin.storages.forcePathStyleHint is help text explaining the two modes', () => {
+    expect(enLocale['admin.storages.forcePathStyleHint']).toBe(
+      'Use https://<endpoint>/<bucket>/<key> format. Disable for virtual-hosted style https://<bucket>.<endpoint>/<key>.',
+    )
   })
 })
 

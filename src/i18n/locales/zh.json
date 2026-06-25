@@ -735,6 +735,8 @@
   "admin.storages.fieldAccessKey": "Access Key",
   "admin.storages.fieldSecretKey": "Secret Key",
   "admin.storages.fieldCustomHost": "自定义域名",
+  "admin.storages.fieldForcePathStyle": "路径寻址",
+  "admin.storages.forcePathStyleHint": "使用 https://<端点>/<存储桶>/<对象> 格式寻址。关闭后使用 virtual-hosted 格式 https://<存储桶>.<端点>/<对象>。",
   "admin.storages.fieldCapacity": "可用空间",
   "admin.storages.capacityUnlimited": "不限制",
   "admin.storages.capacityHint": "最大存储空间，0 表示不限制。",
