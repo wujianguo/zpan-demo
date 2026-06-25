@@ -1,5 +1,6 @@
 import * as sandcastle from "@ai-hero/sandcastle";
 import { docker } from "@ai-hero/sandcastle/sandboxes/docker";
+import { getModel, getAgentEnv } from "./get-claude-code-agent";
 
 const MAX_ITERATIONS = 10;
 const MAX_PARALLEL = 4;
@@ -11,7 +12,7 @@ for (let iteration = 1; iteration <= MAX_ITERATIONS; iteration++) {
   const plan = await sandcastle.run({
     sandbox: docker(),
     name: "Planner",
-    agent: sandcastle.claudeCode("claude-opus-4-6"),
+    agent: sandcastle.claudeCode(getModel(), { env: getAgentEnv() }),
     promptFile: "./.sandcastle/plan-prompt.md",
   });
 
@@ -70,7 +71,7 @@ for (let iteration = 1; iteration <= MAX_ITERATIONS; iteration++) {
 
         const result = await sandbox.run({
           name: "Implementer #" + issue.number,
-          agent: sandcastle.claudeCode("claude-opus-4-6"),
+          agent: sandcastle.claudeCode(getModel(), { env: getAgentEnv() }),
           promptFile: "./.sandcastle/implement-prompt.md",
           promptArgs: {
             ISSUE_NUMBER: String(issue.number),
@@ -82,7 +83,7 @@ for (let iteration = 1; iteration <= MAX_ITERATIONS; iteration++) {
         if (result.commits.length > 0) {
           await sandbox.run({
             name: "Reviewer #" + issue.number,
-            agent: sandcastle.claudeCode("claude-opus-4-6"),
+            agent: sandcastle.claudeCode(getModel(), { env: getAgentEnv() }),
             promptFile: "./.sandcastle/review-prompt.md",
             promptArgs: {
               ISSUE_NUMBER: String(issue.number),
@@ -142,7 +143,7 @@ for (let iteration = 1; iteration <= MAX_ITERATIONS; iteration++) {
     sandbox: docker(),
     name: "Merger",
     maxIterations: 10,
-    agent: sandcastle.claudeCode("claude-opus-4-6"),
+    agent: sandcastle.claudeCode(getModel(), { env: getAgentEnv() }),
     promptFile: "./.sandcastle/merge-prompt.md",
     promptArgs: {
       BRANCHES: completedBranches.map((b) => `- ${b}`).join("\n"),

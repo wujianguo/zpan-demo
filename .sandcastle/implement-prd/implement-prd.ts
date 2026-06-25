@@ -1,6 +1,7 @@
 import * as sandcastle from "@ai-hero/sandcastle";
 import { noSandbox } from "@ai-hero/sandcastle/sandboxes/no-sandbox";
 import * as path from "node:path";
+import { getAgentEnv, getModel } from "../get-claude-code-agent";
 
 const PRD_NUMBER = required("PRD_NUMBER");
 const PRD_TITLE = required("PRD_TITLE");
@@ -10,11 +11,7 @@ const BRANCH = required("BRANCH");
 
 const result = await sandcastle.run({
   name: `implement-prd-#${PRD_NUMBER}-sub-#${SUB_ISSUE_NUMBER}`,
-  agent: sandcastle.claudeCode("claude-opus-4-6", {
-    env: {
-      CLAUDE_CODE_OAUTH_TOKEN: required("CLAUDE_CODE_OAUTH_TOKEN"),
-    },
-  }),
+  agent: sandcastle.claudeCode(getModel(), { env: getAgentEnv() }),
   sandbox: noSandbox(),
   logging: { type: "stdout" },
   promptFile: path.join(import.meta.dirname, "prompt.md"),
