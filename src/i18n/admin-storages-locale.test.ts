@@ -36,6 +36,8 @@ const ADMIN_STORAGES_KEYS = [
   'admin.storages.fieldCapacity',
   'admin.storages.capacityUnlimited',
   'admin.storages.capacityHint',
+  'admin.storages.fieldForcePathStyle',
+  'admin.storages.forcePathStyleHint',
 ]
 
 const ADMIN_NAV_KEYS = ['admin.nav.management', 'admin.nav.storages', 'admin.nav.users']
@@ -174,6 +176,16 @@ describe('admin.storages locale keys — English values contract', () => {
 
   it('admin.storages.capacityHint is "Maximum storage space. 0 means unlimited."', () => {
     expect(enLocale['admin.storages.capacityHint']).toBe('Maximum storage space. 0 means unlimited.')
+  })
+
+  it('admin.storages.fieldForcePathStyle is "Path-style addressing"', () => {
+    expect(enLocale['admin.storages.fieldForcePathStyle']).toBe('Path-style addressing')
+  })
+
+  it('admin.storages.forcePathStyleHint is help text explaining the two modes', () => {
+    expect(enLocale['admin.storages.forcePathStyleHint']).toBe(
+      'Use https://<endpoint>/<bucket>/<key> format. Disable for virtual-hosted style https://<bucket>.<endpoint>/<key>.',
+    )
   })
 })
 
@@ -347,5 +359,33 @@ describe('admin.storages locale keys — i18n runtime translation', () => {
     const { default: i18n } = await import('./index')
     await i18n.changeLanguage('zh')
     expect(i18n.t('admin.storages.capacityHint')).toBe('最大存储空间，0 表示不限制。')
+  })
+
+  it('translates admin.storages.fieldForcePathStyle to English', async () => {
+    const { default: i18n } = await import('./index')
+    await i18n.changeLanguage('en')
+    expect(i18n.t('admin.storages.fieldForcePathStyle')).toBe('Path-style addressing')
+  })
+
+  it('translates admin.storages.fieldForcePathStyle to Chinese', async () => {
+    const { default: i18n } = await import('./index')
+    await i18n.changeLanguage('zh')
+    expect(i18n.t('admin.storages.fieldForcePathStyle')).toBe('路径寻址')
+  })
+
+  it('translates admin.storages.forcePathStyleHint to English', async () => {
+    const { default: i18n } = await import('./index')
+    await i18n.changeLanguage('en')
+    expect(i18n.t('admin.storages.forcePathStyleHint')).toBe(
+      'Use https://<endpoint>/<bucket>/<key> format. Disable for virtual-hosted style https://<bucket>.<endpoint>/<key>.',
+    )
+  })
+
+  it('translates admin.storages.forcePathStyleHint to Chinese', async () => {
+    const { default: i18n } = await import('./index')
+    await i18n.changeLanguage('zh')
+    expect(i18n.t('admin.storages.forcePathStyleHint')).toBe(
+      '使用 https://<端点>/<存储桶>/<对象> 格式寻址。关闭后使用 virtual-hosted 格式 https://<存储桶>.<端点>/<对象>。',
+    )
   })
 })

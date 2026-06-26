@@ -65,6 +65,7 @@ export const storages = sqliteTable('storages', {
   secretKey: text('secret_key').notNull(),
   filePath: text('file_path').notNull().default(''),
   customHost: text('custom_host').default(''),
+  forcePathStyle: integer('force_path_style', { mode: 'boolean' }).notNull().default(true),
   capacity: integer('capacity').notNull().default(0),
   egressCreditBillingEnabled: integer('egress_credit_billing_enabled', { mode: 'boolean' }).notNull().default(false),
   egressCreditUnitBytes: integer('egress_credit_unit_bytes').notNull().default(104857600),

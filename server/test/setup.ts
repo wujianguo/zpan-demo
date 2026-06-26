@@ -167,6 +167,7 @@ const APP_SCHEMA_SQL = `
     secret_key TEXT NOT NULL,
     file_path TEXT NOT NULL DEFAULT '$UID/$RAW_NAME',
     custom_host TEXT DEFAULT '',
+    force_path_style INTEGER NOT NULL DEFAULT 1,
     capacity INTEGER NOT NULL DEFAULT 0,
     used INTEGER NOT NULL DEFAULT 0,
     status TEXT NOT NULL DEFAULT 'active',

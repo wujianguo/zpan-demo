@@ -35,6 +35,7 @@ const storageFormSchema = z.object({
   accessKey: z.string().min(1),
   secretKey: z.string().min(1),
   customHost: z.string().optional(),
+  forcePathStyle: z.boolean(),
   capacityValue: z.coerce.number<number>().min(0),
   capacityUnit: z.enum(['MB', 'GB', 'TB']),
   egressCreditBillingEnabled: z.boolean(),
@@ -53,6 +54,7 @@ const DEFAULT_VALUES: StorageFormValues = {
   accessKey: '',
   secretKey: '',
   customHost: '',
+  forcePathStyle: true,
   capacityValue: 0,
   capacityUnit: 'GB',
   egressCreditBillingEnabled: false,
@@ -92,6 +94,7 @@ export function StorageFormDrawer({ open, onOpenChange, storage, hasTrafficBilli
         accessKey: storage.accessKey,
         secretKey: storage.secretKey,
         customHost: storage.customHost || '',
+        forcePathStyle: storage.forcePathStyle ?? true,
         capacityValue: value,
         capacityUnit: unit,
         egressCreditBillingEnabled: hasTrafficBilling ? (storage.egressCreditBillingEnabled ?? false) : false,
@@ -184,6 +187,20 @@ export function StorageFormDrawer({ open, onOpenChange, storage, hasTrafficBilli
               <FormField label={t('admin.storages.fieldCustomHost')} error={form.formState.errors.customHost?.message}>
                 <Input {...form.register('customHost')} placeholder={t('admin.storages.customHostPlaceholder')} />
               </FormField>
+
+              <div className="rounded-md border p-3">
+                <div className="flex items-center justify-between gap-3">
+                  <div>
+                    <Label htmlFor="forcePathStyle">{t('admin.storages.fieldForcePathStyle')}</Label>
+                    <p className="text-xs text-muted-foreground">{t('admin.storages.forcePathStyleHint')}</p>
+                  </div>
+                  <Switch
+                    id="forcePathStyle"
+                    checked={form.watch('forcePathStyle')}
+                    onCheckedChange={(checked) => form.setValue('forcePathStyle', checked)}
+                  />
+                </div>
+              </div>
 
               <FormField label={t('admin.storages.fieldCapacity')} error={form.formState.errors.capacityValue?.message}>
                 <div className="flex items-center gap-2">

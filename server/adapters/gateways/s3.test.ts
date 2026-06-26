@@ -102,6 +102,7 @@ function makeStorage(overrides: Partial<Storage> = {}): Storage {
     secretKey: 'SECRET',
     filePath: '',
     customHost: '',
+    forcePathStyle: true,
     capacity: 0,
     egressCreditBillingEnabled: false,
     egressCreditUnitBytes: 104857600,
@@ -131,6 +132,23 @@ describe('S3Service', () => {
         region: 'us-east-1',
         endpoint: 'https://s3.example.com',
         requestChecksumCalculation: 'WHEN_REQUIRED',
+        forcePathStyle: true,
+      })
+    })
+
+    it('forwards forcePathStyle: false to the S3 client', () => {
+      const s = makeStorage({ forcePathStyle: false })
+      const client = service.createClient(s)
+      expect(client.config).toMatchObject({
+        forcePathStyle: false,
+      })
+    })
+
+    it('defaults forcePathStyle to true when absent at runtime', () => {
+      // Force the value to be absent at runtime — the ?? true fallback should fire.
+      const s = makeStorage({ forcePathStyle: undefined as unknown as boolean })
+      const client = service.createClient(s)
+      expect(client.config).toMatchObject({
         forcePathStyle: true,
       })
     })
