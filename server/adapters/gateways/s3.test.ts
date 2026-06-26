@@ -143,6 +143,15 @@ describe('S3Service', () => {
         forcePathStyle: false,
       })
     })
+
+    it('defaults forcePathStyle to true when absent at runtime', () => {
+      // Force the value to be absent at runtime — the ?? true fallback should fire.
+      const s = makeStorage({ forcePathStyle: undefined as unknown as boolean })
+      const client = service.createClient(s)
+      expect(client.config).toMatchObject({
+        forcePathStyle: true,
+      })
+    })
   })
 
   describe('presignUpload', () => {
