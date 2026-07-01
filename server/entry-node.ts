@@ -1,3 +1,4 @@
+import { spawn } from 'node:child_process'
 import { existsSync } from 'node:fs'
 import { release as osRelease } from 'node:os'
 import { serve } from '@hono/node-server'
@@ -13,6 +14,7 @@ import { createNodePlatform } from './platform/node'
 import { type DeployPlatform, setDeployPlatform } from './runtime-platform'
 import { syncPendingRemoteDownloadUsageReports } from './usecases/downloads/remote-download-usage'
 import { purgeExpiredTrash, resolveTrashRetentionDays } from './usecases/object'
+import { setTranscodingCapabilities } from './usecases/site/capabilities'
 import { buildCloudInstanceInfo, runtimeInfo } from './usecases/site/instance-info'
 import { INSTANCE_TELEMETRY_CRON, reportInstanceTelemetry } from './usecases/site/instance-telemetry'
 import { runLicensingRefresh } from './usecases/site/licensing'
@@ -49,6 +51,27 @@ function detectNodePlatform(): DeployPlatform {
 }
 setDeployPlatform(detectNodePlatform())
 
+async function detectFFmpeg(): Promise<{ available: boolean; ffmpegVersion?: string }> {
+  return new Promise((resolve) => {
+    const proc = spawn('ffmpeg', ['-version'], { timeout: 5000 })
+    let stdout = ''
+    proc.stdout.on('data', (chunk) => {
+      stdout += chunk.toString()
+    })
+    proc.on('error', () => {
+      resolve({ available: false })
+    })
+    proc.on('close', (code) => {
+      if (code !== 0) {
+        resolve({ available: false })
+        return
+      }
+      const match = stdout.match(/ffmpeg version (\S+)/)
+      resolve({ available: true, ffmpegVersion: match ? match[1] : 'unknown' })
+    })
+  })
+}
+
 const platform = process.env.TURSO_DATABASE_URL
   ? await createLibsqlPlatform({
       TURSO_DATABASE_URL: process.env.TURSO_DATABASE_URL,
@@ -59,7 +82,24 @@ const platform = process.env.TURSO_DATABASE_URL
 const deps = createDeps(platform)
 const app = await createBootstrap(platform)
 
+// Detect FFmpeg availability on startup so the capabilities API reflects the
+// real runtime environment. Cloudflare Workers do not run this entry and
+// unconditionally report unavailable through the default flag.
+detectFFmpeg()
+  .then((caps) => {
+    setTranscodingCapabilities(caps)
+    if (caps.available) {
+      console.log(`ffmpeg.detected version=${caps.ffmpegVersion}`)
+    } else {
+      console.log('ffmpeg.not_detected transcoding_disabled')
+    }
+  })
+  .catch((err) => {
+    console.error(`ffmpeg.detection.error code=${err instanceof Error ? err.message : String(err)}`)
+  })
+
 const server = new Hono()
+server.route('/', app)
 server.route('/', app)
 server.use('/*', serveStatic({ root: './dist' }))
 server.get('/*', serveStatic({ root: './dist', path: 'index.html' }))

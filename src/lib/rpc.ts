@@ -9,6 +9,7 @@ import type {
   AuthProvidersRoute,
   BackgroundJobsRoute,
   BrandingAdminRoute,
+  CapabilitiesRoute,
   CloudStoreRoute,
   DownloaderSelfRoute,
   DownloadersRoute,
@@ -75,6 +76,7 @@ export const ihostConfigApi = hc<IhostConfigRoute>('/api/image-hosting/config', 
 export const ihostApi = hc<IhostRoute>('/api/image-hosting', opts)
 export const licensingApi = hc<LicensingRoute>('/api/site/licensing', opts)
 export const licensingAdminApi = hc<LicensingAdminRoute>('/api/site/licensing', opts)
+export const capabilitiesApi = hc<CapabilitiesRoute>('/api/site/capabilities')
 export const publicBrandingApi = hc<PublicBrandingRoute>('/api/site/branding', opts)
 export const brandingAdminApi = hc<BrandingAdminRoute>('/api/site/branding', opts)
 export const adminAuditApi = hc<AdminAuditRoute>('/api/site/audit-events', opts)
