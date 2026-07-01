@@ -145,6 +145,7 @@ export function createBackgroundJobRepo(db: Database): BackgroundJobRepo {
         currentFilename:
           input.progress?.currentFilename === undefined ? row.currentFilename : input.progress.currentFilename,
         errorMessage: input.errorMessage === undefined ? row.errorMessage : input.errorMessage,
+        metadata: input.metadata === undefined ? row.metadata : stringifyMetadata(input.metadata),
         resultMetadata:
           input.resultMetadata === undefined ? row.resultMetadata : stringifyMetadata(input.resultMetadata),
         retryable: input.retryable ?? row.retryable,

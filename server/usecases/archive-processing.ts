@@ -58,13 +58,14 @@ export async function enqueueArchiveJob(
   deps: ArchiveProcessingDeps,
   input: CreateArchiveJobInput,
 ): Promise<BackgroundJob> {
-  const targetFolder = input.request.targetFolder ?? null
+  const request = input.request as Extract<CreateBackgroundJobRequest, { type: 'archive_compress' | 'archive_extract' }>
+  const targetFolder = request.targetFolder ?? null
   return deps.backgroundJobs.create({
     orgId: input.orgId,
     userId: input.userId,
-    type: input.request.type,
+    type: request.type,
     targetFolder,
-    metadata: input.request,
+    metadata: request,
     cancelable: false,
   })
 }
@@ -76,10 +77,14 @@ export async function processArchiveJob(
   const s3 = input.s3 ?? deps.s3
   try {
     await deps.backgroundJobs.update(input.orgId, input.jobId, { status: 'running', startedAt: new Date() })
+    const request = input.request as Extract<
+      CreateBackgroundJobRequest,
+      { type: 'archive_compress' | 'archive_extract' }
+    >
     const finished =
-      input.request.type === 'archive_compress'
-        ? await runCompressionJob(deps, s3, input.jobId, input.orgId, input.userId, input.request)
-        : await runExtractionJob(deps, s3, input.jobId, input.orgId, input.userId, input.request)
+      request.type === 'archive_compress'
+        ? await runCompressionJob(deps, s3, input.jobId, input.orgId, input.userId, request)
+        : await runExtractionJob(deps, s3, input.jobId, input.orgId, input.userId, request)
     await notifyArchiveJobFinished(deps, finished)
     return finished
   } catch (error) {
@@ -188,8 +193,7 @@ async function runExtractionJob(
   request: Extract<CreateBackgroundJobRequest, { type: 'archive_extract' }>,
 ): Promise<BackgroundJob> {
   const zipMatter = await deps.matter.get(request.matterId, orgId)
-  if (!zipMatter || zipMatter.status !== 'active' || zipMatter.trashedAt != null)
-    throw new Error('ZIP matter not found')
+  if (zipMatter?.status !== 'active' || zipMatter.trashedAt != null) throw new Error('ZIP matter not found')
   if (zipMatter.dirtype !== DirType.FILE || !zipMatter.name.toLowerCase().endsWith('.zip')) {
     throw new Error('Extraction source must be a .zip file')
   }

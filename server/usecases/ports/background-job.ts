@@ -24,6 +24,7 @@ export type ListBackgroundJobsOptions = {
 export type UpdateBackgroundJobInput = {
   status?: BackgroundJobStatus
   progress?: Partial<BackgroundJobProgress>
+  metadata?: BackgroundJobMetadata | null
   errorMessage?: string | null
   resultMetadata?: BackgroundJobMetadata | null
   retryable?: boolean

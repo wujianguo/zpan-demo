@@ -98,7 +98,7 @@ export function createDeps(platform: Platform): Deps {
     systemOptions,
     teams: createTeamRepo(db),
     teamInvites: createTeamInviteRepo(db),
-    transcodingJobs: createTranscodingJobsGateway(),
+    transcodingJobs: createTranscodingJobsGateway(platform),
     userAdmin: createUserAdminRepo(db),
     webdavPath: createWebDavPathRepo(db),
     webdavState: createWebDavStateRepo(db),
