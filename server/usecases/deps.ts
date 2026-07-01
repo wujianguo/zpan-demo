@@ -41,6 +41,7 @@ import type {
   SystemOptionsRepo,
   TeamInviteRepo,
   TeamRepo,
+  TranscodingJobsGateway,
   UserAdminRepo,
   WebDavPathRepo,
   WebDavStateRepo,
@@ -87,6 +88,7 @@ export interface Deps {
   systemOptions: SystemOptionsRepo
   teams: TeamRepo
   teamInvites: TeamInviteRepo
+  transcodingJobs: TranscodingJobsGateway
   userAdmin: UserAdminRepo
   webdavPath: WebDavPathRepo
   webdavState: WebDavStateRepo

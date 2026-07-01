@@ -9,6 +9,7 @@ import { createEmailGateway } from './adapters/gateways/email'
 import { createImageUploadGateway } from './adapters/gateways/image-upload'
 import { createLicensingCloudGateway } from './adapters/gateways/licensing-cloud'
 import { S3Service } from './adapters/gateways/s3'
+import { createTranscodingJobsGateway } from './adapters/gateways/transcoding-jobs'
 import { createZipGateway } from './adapters/gateways/zip'
 import { createCfClient } from './adapters/providers/cf-custom-hostnames'
 import { createChangelogProvider } from './adapters/providers/changelog'
@@ -97,6 +98,7 @@ export function createDeps(platform: Platform): Deps {
     systemOptions,
     teams: createTeamRepo(db),
     teamInvites: createTeamInviteRepo(db),
+    transcodingJobs: createTranscodingJobsGateway(),
     userAdmin: createUserAdminRepo(db),
     webdavPath: createWebDavPathRepo(db),
     webdavState: createWebDavStateRepo(db),
