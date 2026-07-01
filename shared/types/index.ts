@@ -379,7 +379,7 @@ export interface ObjectUploadInstructions {
 }
 
 export type BackgroundJobStatus = 'queued' | 'running' | 'completed' | 'failed' | 'canceled'
-export type KnownBackgroundJobType = 'archive_compress' | 'archive_extract'
+export type KnownBackgroundJobType = 'archive_compress' | 'archive_extract' | 'transcoding'
 export type BackgroundJobType = KnownBackgroundJobType | (string & {})
 
 export interface BackgroundJobProgress {
@@ -476,7 +476,13 @@ export interface ShareView {
   recipients?: ShareRecipient[]
 }
 
-export type NotificationType = 'share_received' | 'archive_job_completed' | 'archive_job_failed' | 'team_join'
+export type NotificationType =
+  | 'share_received'
+  | 'archive_job_completed'
+  | 'archive_job_failed'
+  | 'transcoding_job_completed'
+  | 'transcoding_job_failed'
+  | 'team_join'
 
 export interface Notification {
   id: string

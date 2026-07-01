@@ -21,13 +21,22 @@ export const archiveExtractJobRequestSchema = z.object({
   targetFolder: z.string().optional(),
 })
 
+export const transcodingJobRequestSchema = z.object({
+  type: z.literal('transcoding'),
+  matterId: matterIdSchema,
+  targetFormat: z.enum(['mp4', 'webm']),
+  targetResolution: z.enum(['original', '1080p', '720p', '480p']),
+})
+
 export const createBackgroundJobRequestSchema = z.discriminatedUnion('type', [
   archiveCompressJobRequestSchema,
   archiveExtractJobRequestSchema,
+  transcodingJobRequestSchema,
 ])
 
 export type ArchiveCompressJobRequest = z.infer<typeof archiveCompressJobRequestSchema>
 export type ArchiveExtractJobRequest = z.infer<typeof archiveExtractJobRequestSchema>
+export type TranscodingJobRequest = z.infer<typeof transcodingJobRequestSchema>
 export type CreateBackgroundJobRequest = z.infer<typeof createBackgroundJobRequestSchema>
 
 export const listBackgroundJobsQuerySchema = z.object({
