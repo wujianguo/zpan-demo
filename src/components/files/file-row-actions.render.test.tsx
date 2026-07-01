@@ -18,10 +18,12 @@ vi.mock('react-i18next', () => ({
 
 vi.mock('lucide-react', () => ({
   Archive: () => null,
+  ArrowRightLeft: () => null,
   Copy: () => null,
   Download: () => null,
   EllipsisVertical: () => null,
   FileArchive: () => null,
+  FileVideo: () => null,
   FolderInput: () => null,
   Link: () => null,
   Pencil: () => null,

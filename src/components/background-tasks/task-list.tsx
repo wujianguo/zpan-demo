@@ -1,5 +1,5 @@
 import type { BackgroundJob, BackgroundJobStatus } from '@shared/types'
-import { Archive, FileArchive, RotateCcw, Square } from 'lucide-react'
+import { Archive, FileArchive, FileVideo, RotateCcw, Square } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -71,7 +71,9 @@ export function BackgroundTaskList({
               <tr key={job.id} className="border-b last:border-b-0">
                 <td className="px-4 py-3">
                   <div className="flex min-w-44 items-center gap-2">
-                    {job.type === 'archive_extract' ? (
+                    {job.type === 'transcoding' ? (
+                      <FileVideo className="size-4 text-muted-foreground" />
+                    ) : job.type === 'archive_extract' ? (
                       <FileArchive className="size-4 text-muted-foreground" />
                     ) : (
                       <Archive className="size-4 text-muted-foreground" />
@@ -161,6 +163,7 @@ export function taskProgressPercent(job: BackgroundJob): number {
 export function formatTaskType(type: string, t: (key: string) => string): string {
   if (type === 'archive_compress') return t('tasks.type.archiveCompress')
   if (type === 'archive_extract') return t('tasks.type.archiveExtract')
+  if (type === 'transcoding') return t('tasks.type.transcoding')
   return type
 }
 
@@ -168,6 +171,8 @@ export function formatResult(job: BackgroundJob, t: (key: string, values?: Recor
   if (job.status === 'failed') return job.errorMessage ?? '-'
   const outputName = typeof job.resultMetadata?.outputName === 'string' ? job.resultMetadata.outputName : null
   if (outputName) return outputName
+  const matterId = typeof job.resultMetadata?.matterId === 'string' ? job.resultMetadata.matterId : null
+  if (matterId) return matterId
   const outputBytes = typeof job.resultMetadata?.outputBytes === 'number' ? job.resultMetadata.outputBytes : null
   if (outputBytes !== null) return t('tasks.result.outputBytes', { bytes: outputBytes })
   return '-'

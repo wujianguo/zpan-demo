@@ -7,6 +7,7 @@ import {
   Download,
   EllipsisVertical,
   FileArchive,
+  FileVideo,
   FolderInput,
   Link,
   Pencil,
@@ -38,6 +39,7 @@ export function computeHasActions(item: StorageObject, handlers: Partial<FileAct
     (isFile && handlers.onDownload) ||
     handlers.onCompress ||
     (isZipFile(item) && handlers.onExtract) ||
+    (isVideoFile(item) && handlers.onTranscode) ||
     handlers.onRename ||
     handlers.onCopy ||
     handlers.onMove ||
@@ -59,12 +61,17 @@ export function computeHasWriteActions(item: StorageObject, handlers: Partial<Fi
     handlers.onShare ||
     handlers.onCompress ||
     (isZipFile(item) && handlers.onExtract) ||
+    (isVideoFile(item) && handlers.onTranscode) ||
     (isFile && handlers.onDownload)
   )
 }
 
 export function isZipFile(item: StorageObject): boolean {
   return item.dirtype === DirType.FILE && item.name.toLowerCase().endsWith('.zip')
+}
+
+export function isVideoFile(item: StorageObject): boolean {
+  return item.dirtype === DirType.FILE && item.type.startsWith('video/')
 }
 
 export function FileRowActions({ item, handlers }: FileRowActionsProps) {
@@ -152,6 +159,12 @@ export function FileRowActions({ item, handlers }: FileRowActionsProps) {
           <DropdownMenuItem onClick={() => handlers.onExtract?.(item)}>
             <FileArchive className="mr-2 h-4 w-4" />
             {t('files.extract')}
+          </DropdownMenuItem>
+        )}
+        {isVideoFile(item) && handlers.onTranscode && (
+          <DropdownMenuItem onClick={() => handlers.onTranscode?.(item)}>
+            <FileVideo className="mr-2 h-4 w-4" />
+            {t('files.transcode')}
           </DropdownMenuItem>
         )}
         {handlers.onTrash && (
