@@ -76,7 +76,7 @@ FROM node:24-slim
 WORKDIR /app
 
 RUN apt-get update \
- && apt-get install -y --no-install-recommends aria2 ca-certificates qbittorrent-nox \
+ && apt-get install -y --no-install-recommends aria2 ca-certificates ffmpeg qbittorrent-nox \
  && rm -rf /var/lib/apt/lists/* \
  && addgroup --system zpan \
  && adduser --system --ingroup zpan --home /home/zpan zpan \

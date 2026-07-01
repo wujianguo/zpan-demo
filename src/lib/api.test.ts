@@ -42,6 +42,7 @@ import {
   getAnnouncement,
   getBackgroundJob,
   getBranding,
+  getCapabilities,
   getChangelog,
   getCloudCredits,
   getEmailConfig,
@@ -3902,6 +3903,35 @@ describe('api', () => {
       vi.mocked(fetch).mockResolvedValueOnce(makeResponse({ error: 'forbidden' }, false, 403))
 
       await expect(listTeamActivities('team-1')).rejects.toThrow('forbidden')
+    })
+  })
+
+  describe('getCapabilities', () => {
+    it('fetches site capabilities from /api/site/capabilities', async () => {
+      const payload = { transcoding: { available: true, ffmpegVersion: '7.0.2' } }
+      vi.mocked(fetch).mockResolvedValueOnce(makeResponse(payload))
+
+      const result = await getCapabilities()
+
+      expect(result).toEqual(payload)
+      const [url, init] = vi.mocked(fetch).mock.calls[0] as [string, RequestInit]
+      expect(url).toBe('/api/site/capabilities')
+      expect(init.method).toBe('GET')
+    })
+
+    it('returns available: false when ffmpeg is not installed', async () => {
+      const payload = { transcoding: { available: false } }
+      vi.mocked(fetch).mockResolvedValueOnce(makeResponse(payload))
+
+      const result = await getCapabilities()
+
+      expect(result).toEqual({ transcoding: { available: false } })
+    })
+
+    it('throws ApiError on failure', async () => {
+      vi.mocked(fetch).mockResolvedValueOnce(makeResponse({ error: 'server error' }, false, 500))
+
+      await expect(getCapabilities()).rejects.toThrow('server error')
     })
   })
 })

@@ -9,7 +9,13 @@ import {
   retryBackgroundJob,
 } from './background-job'
 import type { Deps } from './deps'
-import { type ArchiveJobMessage, type ArchiveJobsGateway, BackgroundJobError, type BackgroundJobRepo } from './ports'
+import {
+  type ArchiveJobMessage,
+  type ArchiveJobsGateway,
+  BackgroundJobError,
+  type BackgroundJobRepo,
+  type TranscodingJobsGateway,
+} from './ports'
 
 const sampleJob = {
   id: 'job-1',
@@ -22,10 +28,12 @@ const sampleJob = {
 
 const extractRequest: CreateBackgroundJobRequest = { type: 'archive_extract', matterId: 'm-1' }
 
-// Fake ports as plain objects. backgroundJobs.create is what enqueueArchiveJob
-// (the real composed function) drives on create; everything else is forwarded.
 function makeDeps(
-  overrides: { backgroundJobs?: Partial<BackgroundJobRepo>; dispatch?: ArchiveJobsGateway['dispatch'] } = {},
+  overrides: {
+    backgroundJobs?: Partial<BackgroundJobRepo>
+    archiveDispatch?: ArchiveJobsGateway['dispatch']
+    transcodingDispatch?: TranscodingJobsGateway['dispatch']
+  } = {},
 ) {
   const backgroundJobs: BackgroundJobRepo = {
     create: vi.fn(async () => sampleJob),
@@ -36,9 +44,14 @@ function makeDeps(
     retry: vi.fn(async () => sampleJob),
     ...overrides.backgroundJobs,
   }
-  const dispatch = vi.fn(overrides.dispatch ?? (async () => {}))
-  const deps = { backgroundJobs, archiveJobs: { dispatch } } as unknown as Deps
-  return { deps, backgroundJobs, dispatch }
+  const archiveDispatch = vi.fn(overrides.archiveDispatch ?? (async () => {}))
+  const transcodingDispatch = vi.fn(overrides.transcodingDispatch ?? (async () => {}))
+  const deps = {
+    backgroundJobs,
+    archiveJobs: { dispatch: archiveDispatch },
+    transcodingJobs: { dispatch: transcodingDispatch },
+  } as unknown as Deps
+  return { deps, backgroundJobs, archiveDispatch, transcodingDispatch }
 }
 
 beforeEach(() => vi.clearAllMocks())
@@ -92,11 +105,11 @@ describe('background-job usecase', () => {
   describe('createBackgroundJob', () => {
     it('enqueues the request then dispatches the job, and returns it', async () => {
       const create = vi.fn(async () => sampleJob)
-      const { deps, dispatch } = makeDeps({ backgroundJobs: { create } })
+      const { deps, archiveDispatch } = makeDeps({ backgroundJobs: { create } })
       const job = await createBackgroundJob(deps, { orgId: 'org-1', userId: 'user-1', request: extractRequest })
 
       expect(job).toBe(sampleJob)
-      // enqueueArchiveJob maps the request onto the create input.
+      // Inlined enqueue logic maps the request onto the create input.
       expect(create).toHaveBeenCalledWith({
         orgId: 'org-1',
         userId: 'user-1',
@@ -105,7 +118,7 @@ describe('background-job usecase', () => {
         metadata: extractRequest,
         cancelable: false,
       })
-      expect(dispatch).toHaveBeenCalledWith({
+      expect(archiveDispatch).toHaveBeenCalledWith({
         orgId: 'org-1',
         userId: 'user-1',
         request: extractRequest,
@@ -119,10 +132,10 @@ describe('background-job usecase', () => {
         calls.push('create')
         return sampleJob
       })
-      const dispatch = vi.fn(async () => {
+      const archiveDispatch = vi.fn(async () => {
         calls.push('dispatch')
       })
-      const { deps } = makeDeps({ backgroundJobs: { create }, dispatch })
+      const { deps } = makeDeps({ backgroundJobs: { create }, archiveDispatch })
       await createBackgroundJob(deps, { orgId: 'org-1', userId: 'user-1', request: extractRequest })
       expect(calls).toEqual(['create', 'dispatch'])
     })
@@ -134,20 +147,57 @@ describe('background-job usecase', () => {
       await createBackgroundJob(deps, { orgId: 'org-1', userId: 'user-1', request })
       expect(create).toHaveBeenCalledWith(expect.objectContaining({ targetFolder: 'dest', metadata: request }))
     })
+
+    it('routes archive_compress dispatch to archiveJobs', async () => {
+      const { deps, archiveDispatch, transcodingDispatch } = makeDeps()
+      const request: CreateBackgroundJobRequest = { type: 'archive_compress', matterIds: ['m-1'] }
+      await createBackgroundJob(deps, { orgId: 'org-1', userId: 'user-1', request })
+      expect(archiveDispatch).toHaveBeenCalledWith({
+        orgId: 'org-1',
+        userId: 'user-1',
+        request,
+        jobId: 'job-1',
+      })
+      expect(transcodingDispatch).not.toHaveBeenCalled()
+    })
+
+    it('routes archive_extract dispatch to archiveJobs', async () => {
+      const { deps, archiveDispatch, transcodingDispatch } = makeDeps()
+      await createBackgroundJob(deps, { orgId: 'org-1', userId: 'user-1', request: extractRequest })
+      expect(archiveDispatch).toHaveBeenCalled()
+      expect(transcodingDispatch).not.toHaveBeenCalled()
+    })
+
+    it('routes transcoding dispatch to transcodingJobs', async () => {
+      const { deps, archiveDispatch, transcodingDispatch } = makeDeps()
+      const request = { type: 'transcoding', matterId: 'm-1', targetFormat: 'mp4', targetResolution: '720p' }
+      await createBackgroundJob(deps, {
+        orgId: 'org-1',
+        userId: 'user-1',
+        request: request as unknown as CreateBackgroundJobRequest,
+      })
+      expect(transcodingDispatch).toHaveBeenCalledWith({
+        orgId: 'org-1',
+        userId: 'user-1',
+        request,
+        jobId: 'job-1',
+      })
+      expect(archiveDispatch).not.toHaveBeenCalled()
+    })
   })
 
   describe('retryBackgroundJob', () => {
     it('retries and redispatches when the stored metadata is a valid request', async () => {
       const retriedJob = { ...sampleJob, id: 'job-2', userId: 'owner-9', metadata: extractRequest } as BackgroundJob
       const retry = vi.fn(async () => retriedJob)
-      const { deps, dispatch } = makeDeps({ backgroundJobs: { retry } })
+      const { deps, archiveDispatch } = makeDeps({ backgroundJobs: { retry } })
 
       const out = await retryBackgroundJob(deps, 'org-1', 'job-1')
 
       expect(out).toBe(retriedJob)
       expect(retry).toHaveBeenCalledWith('org-1', 'job-1')
       // Dispatch uses the retried job's own owner and id, parsed from metadata.
-      expect(dispatch).toHaveBeenCalledWith({
+      expect(archiveDispatch).toHaveBeenCalledWith({
         orgId: 'org-1',
         userId: 'owner-9',
         request: extractRequest,
@@ -158,28 +208,31 @@ describe('background-job usecase', () => {
     it('does not dispatch when the stored metadata is not a valid request', async () => {
       const retriedJob = { ...sampleJob, metadata: { not: 'a request' } } as BackgroundJob
       const retry = vi.fn(async () => retriedJob)
-      const { deps, dispatch } = makeDeps({ backgroundJobs: { retry } })
+      const { deps, archiveDispatch, transcodingDispatch } = makeDeps({ backgroundJobs: { retry } })
 
       const out = await retryBackgroundJob(deps, 'org-1', 'job-1')
 
       expect(out).toBe(retriedJob)
-      expect(dispatch).not.toHaveBeenCalled()
+      expect(archiveDispatch).not.toHaveBeenCalled()
+      expect(transcodingDispatch).not.toHaveBeenCalled()
     })
 
     it('does not dispatch when the stored metadata is null', async () => {
       const retry = vi.fn(async () => ({ ...sampleJob, metadata: null }) as BackgroundJob)
-      const { deps, dispatch } = makeDeps({ backgroundJobs: { retry } })
+      const { deps, archiveDispatch, transcodingDispatch } = makeDeps({ backgroundJobs: { retry } })
       await retryBackgroundJob(deps, 'org-1', 'job-1')
-      expect(dispatch).not.toHaveBeenCalled()
+      expect(archiveDispatch).not.toHaveBeenCalled()
+      expect(transcodingDispatch).not.toHaveBeenCalled()
     })
 
     it('propagates BackgroundJobError when the job is not retryable', async () => {
       const retry = vi.fn(async () => {
         throw new BackgroundJobError('not_retryable')
       })
-      const { deps, dispatch } = makeDeps({ backgroundJobs: { retry } })
+      const { deps, archiveDispatch, transcodingDispatch } = makeDeps({ backgroundJobs: { retry } })
       await expect(retryBackgroundJob(deps, 'org-1', 'job-1')).rejects.toMatchObject({ code: 'not_retryable' })
-      expect(dispatch).not.toHaveBeenCalled()
+      expect(archiveDispatch).not.toHaveBeenCalled()
+      expect(transcodingDispatch).not.toHaveBeenCalled()
     })
   })
 })

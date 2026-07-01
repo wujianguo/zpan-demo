@@ -2,7 +2,7 @@ import type { BackgroundJob } from '@shared/types'
 import { cleanup, fireEvent, render } from '@testing-library/react'
 import type React from 'react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { BackgroundTaskList, taskProgressPercent } from './task-list'
+import { BackgroundTaskList, formatTaskType, taskProgressPercent } from './task-list'
 
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({
@@ -13,6 +13,7 @@ vi.mock('react-i18next', () => ({
 vi.mock('lucide-react', () => ({
   Archive: () => null,
   FileArchive: () => null,
+  FileVideo: () => null,
   RotateCcw: () => null,
   Square: () => null,
 }))
@@ -124,6 +125,73 @@ describe('taskProgressPercent', () => {
 type JobOverrides = Omit<Partial<BackgroundJob>, 'progress'> & {
   progress?: Partial<BackgroundJob['progress']>
 }
+
+describe('formatTaskType', () => {
+  const t = (key: string) => key
+
+  it('returns correct label for transcoding', () => {
+    expect(formatTaskType('transcoding', t)).toBe('tasks.type.transcoding')
+  })
+
+  it('returns correct label for archive_compress', () => {
+    expect(formatTaskType('archive_compress', t)).toBe('tasks.type.archiveCompress')
+  })
+
+  it('falls back to raw type string for unknown types', () => {
+    expect(formatTaskType('some_unknown_type', t)).toBe('some_unknown_type')
+  })
+})
+
+describe('BackgroundTaskList — transcoding jobs', () => {
+  it('renders transcoding job with correct type label and icon', () => {
+    const jobs = [
+      makeJob({
+        id: 'transcode-job',
+        type: 'transcoding',
+        status: 'completed',
+        resultMetadata: { matterId: 'matter-abc' },
+      }),
+    ]
+
+    const view = render(
+      <BackgroundTaskList
+        jobs={jobs}
+        total={1}
+        filter="completed"
+        onFilterChange={vi.fn()}
+        onCancel={vi.fn()}
+        onRetry={vi.fn()}
+      />,
+    )
+
+    expect(view.getByText('tasks.type.transcoding')).toBeTruthy()
+    expect(view.getByText('tasks.status.completed')).toBeTruthy()
+  })
+
+  it('shows matterId in result for completed transcoding jobs', () => {
+    const jobs = [
+      makeJob({
+        id: 'transcode-job',
+        type: 'transcoding',
+        status: 'completed',
+        resultMetadata: { matterId: 'matter-abc-123' },
+      }),
+    ]
+
+    const view = render(
+      <BackgroundTaskList
+        jobs={jobs}
+        total={1}
+        filter="completed"
+        onFilterChange={vi.fn()}
+        onCancel={vi.fn()}
+        onRetry={vi.fn()}
+      />,
+    )
+
+    expect(view.getByText('matter-abc-123')).toBeTruthy()
+  })
+})
 
 function makeJob(overrides: JobOverrides = {}): BackgroundJob {
   const { progress, ...jobOverrides } = overrides

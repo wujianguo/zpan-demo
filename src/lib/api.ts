@@ -64,6 +64,7 @@ import {
   authProviders,
   backgroundJobsApi,
   brandingAdminApi,
+  capabilitiesApi,
   cloudStoreApi,
   downloaderSelfApi,
   downloadTasksApi,
@@ -1445,4 +1446,17 @@ export function listAdminAuditLogs(page = 1, pageSize = 20, filter: AdminAuditFi
   if (filter.action) query.action = filter.action
   if (filter.targetType) query.targetType = filter.targetType
   return unwrap<PaginatedResponse<AdminAuditEvent>>(adminAuditApi.index.$get({ query }))
+}
+
+// Site Capabilities API
+
+export interface SiteCapabilities {
+  transcoding: {
+    available: boolean
+    ffmpegVersion?: string
+  }
+}
+
+export function getCapabilities() {
+  return unwrap<SiteCapabilities>(capabilitiesApi.index.$get())
 }

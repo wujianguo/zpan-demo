@@ -9,6 +9,7 @@ import { NewFolderDialog } from './dialogs/new-folder-dialog'
 import { OperationProgress, type OperationProgressState } from './dialogs/operation-progress'
 import { RenameDialog } from './dialogs/rename-dialog'
 import { ShareDialog } from './dialogs/share-dialog'
+import { TranscodeDialog } from './dialogs/transcode-dialog'
 
 interface FileManagerDialogsProps {
   renameTarget: StorageObject | null
@@ -32,6 +33,8 @@ interface FileManagerDialogsProps {
   movePending: boolean
   shareTarget: StorageObject | null
   onShareClose: () => void
+  transcodeTargets: StorageObject[]
+  onTranscodeClose: () => void
   conflictDialogState: ComponentProps<typeof NameConflictDialog>
 }
 
@@ -110,6 +113,14 @@ export function FileManagerDialogs(props: FileManagerDialogsProps) {
         onViewShares={() => {
           props.onShareClose()
           navigate({ to: '/shares', search: { status: 'all', page: 1, box: 'sent' } })
+        }}
+      />
+
+      <TranscodeDialog
+        open={props.transcodeTargets.length > 0}
+        items={props.transcodeTargets}
+        onOpenChange={(open) => {
+          if (!open) props.onTranscodeClose()
         }}
       />
     </>

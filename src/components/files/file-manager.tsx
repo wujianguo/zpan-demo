@@ -23,6 +23,7 @@ import { Card } from '@/components/ui/card'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { UploadDropzone, type UploadDropzoneHandle } from '@/components/upload/upload-dropzone'
 import type { UploadRunnerContext } from '@/components/upload/upload-queue'
+import { useCapabilities } from '@/hooks/use-capabilities'
 import { createBackgroundJob, deleteObject, getObject, listObjectsByPath, updateObject } from '@/lib/api'
 import { runSequentialOperation } from '@/lib/sequential-operation'
 import { cn } from '@/lib/utils'
@@ -30,6 +31,7 @@ import { getColumns } from './columns'
 import type { OperationProgressState } from './dialogs/operation-progress'
 import { DndWrapper } from './dnd-wrapper'
 import { FileManagerDialogs } from './file-manager-dialogs'
+import { isVideoFile } from './file-row-actions'
 import { FilesGrid } from './files-grid'
 import { FilesTable } from './files-table'
 import { FilesToolbar } from './files-toolbar'
@@ -210,6 +212,7 @@ export function FileManager({
   const [moveTargetIds, setMoveTargetIds] = useState<string[]>([])
   const [showNewFolder, setShowNewFolder] = useState(false)
   const [shareTarget, setShareTarget] = useState<StorageObject | null>(null)
+  const [transcodeTargets, setTranscodeTargets] = useState<StorageObject[]>([])
   const [transferTarget, setTransferTarget] = useState<StorageObject | null>(null)
   const [previewFile, setPreviewFile] = useState<PreviewFile | null>(null)
   const [previewOpen, setPreviewOpen] = useState(false)
@@ -227,6 +230,7 @@ export function FileManager({
   })
   const mutations = useFileMutations(currentPath)
   const conflict = useConflictResolver()
+  const { available: transcodingAvailable } = useCapabilities()
   const items = query.data?.items ?? []
   const operationCancelRef = useRef(false)
   const [operationState, setOperationState] = useState<OperationProgressState | null>(null)
@@ -355,11 +359,13 @@ export function FileManager({
       onExtract: resolvedCapabilities.archive
         ? (item) => archiveMutation.mutate({ type: 'archive_extract', matterId: item.id })
         : undefined,
+      onTranscode: transcodingAvailable ? (item) => setTranscodeTargets([item]) : undefined,
     }),
     [
       handleOpen,
       handleDownload,
       resolvedCapabilities,
+      transcodingAvailable,
       onDeleteItems,
       onCopyUrl,
       archiveMutation,
@@ -400,6 +406,17 @@ export function FileManager({
   const handleBatchCompress = useCallback(() => {
     archiveMutation.mutate({ type: 'archive_compress', matterIds: selectedIds })
   }, [archiveMutation, selectedIds])
+
+  const selectedVideoItems = useMemo(
+    () => items.filter((i) => selectedIds.includes(i.id) && isVideoFile(i)),
+    [items, selectedIds],
+  )
+
+  const handleBatchTranscode = useCallback(() => {
+    setTranscodeTargets(selectedVideoItems)
+  }, [selectedVideoItems])
+
+  const hasBatchTranscode = transcodingAvailable && selectedVideoItems.length > 0
 
   const runFileOperation = useCallback(
     async (
@@ -608,6 +625,7 @@ export function FileManager({
           onBatchTrash={resolvedCapabilities.trash ? () => setDeleteTargetIds(selectedIds) : undefined}
           onBatchMove={resolvedCapabilities.move ? () => setMoveTargetIds(selectedIds) : undefined}
           onBatchCompress={resolvedCapabilities.archive ? handleBatchCompress : undefined}
+          onBatchTranscode={hasBatchTranscode ? handleBatchTranscode : undefined}
           onClearSelection={resolvedCapabilities.selection ? () => setRowSelection({}) : undefined}
           onShare={resolvedCapabilities.share ? handleToolbarShare : undefined}
         />
@@ -713,6 +731,8 @@ export function FileManager({
           movePending={!!operationState}
           shareTarget={shareTarget}
           onShareClose={() => setShareTarget(null)}
+          transcodeTargets={transcodeTargets}
+          onTranscodeClose={() => setTranscodeTargets([])}
           conflictDialogState={conflict.dialogState}
         />
       ) : null}

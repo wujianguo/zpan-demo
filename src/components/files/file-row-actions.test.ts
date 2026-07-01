@@ -3,7 +3,7 @@
 import { DirType } from '@shared/constants'
 import type { StorageObject } from '@shared/types'
 import { describe, expect, it, vi } from 'vitest'
-import { computeHasActions, computeHasWriteActions, isZipFile } from './file-row-actions'
+import { computeHasActions, computeHasWriteActions, isVideoFile, isZipFile } from './file-row-actions'
 import type { FileActionHandlers } from './types'
 
 // ---------------------------------------------------------------------------
@@ -252,5 +252,82 @@ describe('FileRowActions — onDelete', () => {
     onDelete(item)
 
     expect(onDelete).toHaveBeenCalledWith(item)
+  })
+})
+
+// ---------------------------------------------------------------------------
+// isVideoFile — identifies video files by MIME type
+// ---------------------------------------------------------------------------
+
+describe('FileRowActions — isVideoFile', () => {
+  it('returns true for video/mp4', () => {
+    expect(isVideoFile({ ...makeObject(DirType.FILE), type: 'video/mp4' })).toBe(true)
+  })
+
+  it('returns true for video/webm', () => {
+    expect(isVideoFile({ ...makeObject(DirType.FILE), type: 'video/webm' })).toBe(true)
+  })
+
+  it('returns true for video/x-matroska', () => {
+    expect(isVideoFile({ ...makeObject(DirType.FILE), type: 'video/x-matroska' })).toBe(true)
+  })
+
+  it('returns false for image/png', () => {
+    expect(isVideoFile({ ...makeObject(DirType.FILE), type: 'image/png' })).toBe(false)
+  })
+
+  it('returns false for application/zip', () => {
+    expect(isVideoFile({ ...makeObject(DirType.FILE), type: 'application/zip' })).toBe(false)
+  })
+
+  it('returns false for folders regardless of name', () => {
+    expect(isVideoFile({ ...makeObject(DirType.USER_FOLDER), type: 'video/mp4' })).toBe(false)
+  })
+})
+
+// ---------------------------------------------------------------------------
+// Transcode action visibility in computeHasActions
+// ---------------------------------------------------------------------------
+
+describe('FileRowActions — transcode visibility in computeHasActions', () => {
+  it('returns true when onTranscode is provided and item is a video file', () => {
+    const item = { ...makeObject(DirType.FILE), type: 'video/mp4' }
+    const handlers: Partial<FileActionHandlers> = { onTranscode: vi.fn() }
+
+    expect(computeHasActions(item, handlers)).toBe(true)
+  })
+
+  it('returns false when onTranscode is provided but item is not a video file', () => {
+    const item = { ...makeObject(DirType.FILE), type: 'image/png' }
+    const handlers: Partial<FileActionHandlers> = { onTranscode: vi.fn() }
+
+    expect(computeHasActions(item, handlers)).toBe(false)
+  })
+
+  it('returns false when onTranscode is provided but item is a folder', () => {
+    const item = { ...makeObject(DirType.USER_FOLDER), type: 'video/mp4' }
+    const handlers: Partial<FileActionHandlers> = { onTranscode: vi.fn() }
+
+    expect(computeHasActions(item, handlers)).toBe(false)
+  })
+})
+
+// ---------------------------------------------------------------------------
+// Transcode action in computeHasWriteActions
+// ---------------------------------------------------------------------------
+
+describe('FileRowActions — transcode visibility in computeHasWriteActions', () => {
+  it('includes transcode as a write action for video files', () => {
+    const item = { ...makeObject(DirType.FILE), type: 'video/mp4' }
+    const handlers: Partial<FileActionHandlers> = { onTranscode: vi.fn() }
+
+    expect(computeHasWriteActions(item, handlers)).toBe(true)
+  })
+
+  it('does not include transcode as a write action for non-video files', () => {
+    const item = { ...makeObject(DirType.FILE), type: 'image/png' }
+    const handlers: Partial<FileActionHandlers> = { onTranscode: vi.fn() }
+
+    expect(computeHasWriteActions(item, handlers)).toBe(false)
   })
 })

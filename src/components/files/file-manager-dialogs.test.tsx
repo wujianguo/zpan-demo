@@ -41,6 +41,10 @@ vi.mock('./dialogs/share-dialog', () => ({
   ShareDialog: () => null,
 }))
 
+vi.mock('./dialogs/transcode-dialog', () => ({
+  TranscodeDialog: () => null,
+}))
+
 vi.mock('./dialogs/delete-confirm-dialog', () => ({
   DeleteConfirmDialog: () => null,
 }))
@@ -88,6 +92,8 @@ describe('FileManagerDialogs', () => {
         movePending={false}
         shareTarget={null}
         onShareClose={vi.fn()}
+        transcodeTargets={[]}
+        onTranscodeClose={vi.fn()}
         conflictDialogState={{
           request: null,
           applyToAll: false,

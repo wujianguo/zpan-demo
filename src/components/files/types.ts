@@ -13,6 +13,7 @@ export interface FileActionHandlers {
   onCopyUrl?: (item: StorageObject, format?: 'raw' | 'markdown' | 'html' | 'bbcode') => void
   onCompress?: (item: StorageObject) => void
   onExtract?: (item: StorageObject) => void
+  onTranscode?: (item: StorageObject) => void
 }
 
 export interface BreadcrumbItem {

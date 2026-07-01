@@ -22,6 +22,7 @@ import { announcements } from './http/site/announcements'
 import { adminAudit } from './http/site/audit'
 import { authProviders } from './http/site/auth-providers'
 import { brandingAdmin, publicBranding } from './http/site/branding'
+import capabilities from './http/site/capabilities'
 import emailConfig from './http/site/email-config'
 import { adminSiteInvitations, publicSiteInvitations } from './http/site/invitations'
 import { adminInviteCodes, publicInviteCodes } from './http/site/invite-codes'
@@ -183,6 +184,7 @@ export function createApp(platform: Platform, auth: Auth, deps: Deps = createDep
   app.route('/r', redirect)
   app.route('/api/teams', publicTeams)
   app.route('/api/site/auth-providers', authProviders)
+  app.route('/api/site/capabilities', capabilities)
   app.route('/api/site/licensing', licensing)
   app.route('/api/site/branding', publicBranding)
   app.route('/api/site/invitations', publicSiteInvitations)
@@ -328,6 +330,7 @@ export type DownloaderSelfRoute = typeof downloaderSelfRoute
 export type IhostRoute = typeof ihost
 export type IhostConfigRoute = typeof ihostConfig
 export type AnnouncementsRoute = typeof announcements
+export type CapabilitiesRoute = typeof capabilities
 export type LicensingRoute = typeof licensing
 export type LicensingAdminRoute = typeof licensingAdmin
 export type PublicBrandingRoute = typeof publicBranding
